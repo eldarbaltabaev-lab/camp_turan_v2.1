@@ -109,32 +109,40 @@
   }
    
    function findRawLocation(rows) {
-     const MAX_COL = 10;
-     for (const row of rows) {
-       const limit = Math.min(row.length, MAX_COL);
-       for (let c = 0; c < limit; c++) {
-         const cell = String(row[c] ?? '');
-         const idx = cell.search(/НАЗВАНИЕ\s*ОБЪЕКТА/i);
-         if (idx !== -1) {
-           const leftInCell = cell.slice(0, idx).trim();
-           if (leftInCell) return leftInCell;
-   
-           for (let k = c - 1; k >= 0; k--) {
-             const left = String(row[k] ?? '').trim();
-             if (left) return left;
-           }
-   
-           const wholeRow = row
-             .slice(0, MAX_COL)
-             .map((v) => String(v ?? ''))
-             .join(' ')
-             .trim();
-           return wholeRow || null;
-         }
-       }
-     }
-     return null;
-   }
+  const MAX_COL = 25;
+
+  for (const row of rows) {
+    const limit = Math.min(row.length, MAX_COL);
+    for (let c = 0; c < limit; c++) {
+      const cell = String(row[c] ?? '');
+      const idx = cell.search(/НАЗВАНИЕ\s*ОБЪЕКТА/i);
+      if (idx === -1) continue;
+
+      // 1) Значение в той же ячейке слева от подписи
+      const leftInCell = cell.slice(0, idx).trim();
+      if (leftInCell) return leftInCell;
+
+      // 2) Значение справа от подписи в той же ячейке (после двоеточия)
+      const afterColon = cell.slice(idx).split(/[:：]/).slice(1).join(':').trim();
+      if (afterColon) return afterColon;
+
+      // 3) Первое непустое значение справа в строке
+      for (let k = c + 1; k < row.length; k++) {
+        const right = String(row[k] ?? '').trim();
+        if (right) return right;
+      }
+
+      // 4) Первое непустое значение слева в строке
+      for (let k = c - 1; k >= 0; k--) {
+        const left = String(row[k] ?? '').trim();
+        if (left) return left;
+      }
+
+      // Если вокруг только подпись — ничего не нашли, идём к следующей строке
+    }
+  }
+  return null;
+}
    
    function findEmployees(rows) {
      const MAX_COL = 10;
